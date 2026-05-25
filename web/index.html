@@ -36,10 +36,10 @@
       throw new Error("createDbWorker missing — esm.sh export shape changed; inspect `sqljsHttpvfs`");
     }
 
-    // lakes.sqlite lives at the repo root under storage/db/, while this page
-    // is served from web/. Resolve relative to the page so the URL is correct
-    // regardless of where Pages is mounted.
-    const DB_URL = new URL("../storage/db/lakes.sqlite", import.meta.url).href;
+    // Served from raw.githubusercontent.com: binary content-type, no auto-gzip,
+    // Range requests honored, CORS open. jsDelivr would be faster (Fastly CDN)
+    // but caps at 20 MB per file; GitHub Pages auto-gzips and breaks ranges.
+    const DB_URL = "https://raw.githubusercontent.com/0xNima/lake-bank/main/storage/db/lakes.sqlite";
 
     const statusEl = document.getElementById("status");
     const resultsEl = document.getElementById("results");
