@@ -80,15 +80,8 @@ def build_sqlite():
                 lake_name TEXT NOT NULL
             );
             CREATE INDEX idx_lakes_name ON lakes(lake_name COLLATE NOCASE);
-            CREATE VIRTUAL TABLE lakes_fts USING fts5(
-                lake_name,
-                content='lakes',
-                content_rowid='rowid',
-                tokenize='trigram'
-            );
         """)
         conn.executemany("INSERT INTO lakes VALUES (?, ?)", rows)
-        conn.execute("INSERT INTO lakes_fts(lakes_fts) VALUES('rebuild')")
         conn.commit()
         # VACUUM compacts pages and applies the page_size pragma to the whole file
         conn.execute("VACUUM")
