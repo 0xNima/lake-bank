@@ -10,6 +10,7 @@ from pathlib import Path
 from datetime import datetime, timezone, timedelta
 from fiona.io import ZipMemoryFile
 from tqdm import tqdm
+from typing import List, Optional
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 
 
@@ -113,7 +114,7 @@ async def setup_download_tasks(file_id: str, urls: set, desc: str = "Downloading
     semaphore = asyncio.Semaphore(5)
     client, jar = setup_earthdata_client()
     url_list = list(urls)
-    tasks: list[asyncio.Task] = []
+    tasks: List[asyncio.Task] = []
 
     try:
         async with client:
@@ -250,7 +251,7 @@ def make_fid(start_time, end_time):
     return f'{sdt.hex()}_{edt.hex()}'
 
 
-def fetch(file_id: str) -> None | set:
+def fetch(file_id: str) -> Optional[set]:
     lookup = Path(f'storage/{file_id}')
     data = None
     if lookup.exists():

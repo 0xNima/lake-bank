@@ -1,7 +1,5 @@
 # lake-bank
 
-An effort to collect lake names and their corresponding IDs from NASA Earthdata.
-
 ## What it does
 
 `lake-bank` queries NASA Earthdata's CMR API for SWOT `SWOT_L2_HR_LakeSP_D` granules over a date range, downloads each granule's zipped shapefile, and extracts only the `lake_id` / `lake_name` attributes — **all on the fly, in memory**. The raw granule archives are never written to disk; only the much smaller extracted attribute mappings are persisted.
@@ -10,7 +8,7 @@ This is useful when you don't have the disk space to hoard the raw SWOT shapefil
 
 ## Requirements
 
-- Python 3.10+
+- Python 3.9+ (capped by `geopandas`)
 - A NASA Earthdata account: https://urs.earthdata.nasa.gov/
 - A `~/.netrc` entry for the Earthdata host so the downloader can authenticate non-interactively:
 
