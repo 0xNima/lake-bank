@@ -20,9 +20,9 @@
 </head>
 <body>
   <h1>Lake Bank</h1>
-  <p class="sub">Search SWOT lakes by name (substring / fuzzy). Powered by SQLite served over HTTP Range requests — no server.</p>
+  <p class="sub">Search SWOT lakes by name prefix (case-insensitive). Powered by SQLite served over HTTP Range requests — no server.</p>
 
-  <input id="q" type="search" placeholder="Type at least 3 characters…" autofocus autocomplete="off">
+  <input id="q" type="search" placeholder="Type a lake name…" autofocus autocomplete="off">
   <div class="status" id="status">Loading database…</div>
   <table>
     <thead><tr><th>lake_id</th><th>lake_name</th></tr></thead>
@@ -70,11 +70,23 @@
       throw e;
     }
 
+    // Case-insensitive prefix match. The COLLATE NOCASE index on lake_name
+    // makes this an indexed range scan, not a full table scan.
+    async function search(q, limit = 50) {
+      return worker.db.query(
+        `SELECT lake_id, lake_name FROM lakes
+         WHERE lake_name LIKE ? || '%' COLLATE NOCASE
+         ORDER BY lake_name
+         LIMIT ?`,
+        [q, limit],
+      );
+    }
+
     let token = 0;
     let timer = 0;
     input.addEventListener("input", () => {
       clearTimeout(timer);
-      timer = setTimeout(runQuery, 120);  // debounce while typing
+      timer = setTimeout(runQuery, 120);
     });
 
     async function runQuery() {
@@ -84,28 +96,8 @@
 
       try {
         const t0 = performance.now();
-        let rows;
-        if (q.length < 3) {
-          // FTS5 trigram needs 3+ chars — fall back to a fast prefix LIKE
-          rows = await worker.db.query(
-            `SELECT lake_id, lake_name FROM lakes
-             WHERE lake_name LIKE ? || '%' COLLATE NOCASE
-             LIMIT 50`,
-            [q],
-          );
-        } else {
-          // Trigram substring/fuzzy match across the whole name
-          const phrase = `"${q.replaceAll('"', '""')}"`;
-          rows = await worker.db.query(
-            `SELECT l.lake_id, l.lake_name
-             FROM lakes_fts f
-             JOIN lakes l ON l.rowid = f.rowid
-             WHERE lakes_fts MATCH ?
-             LIMIT 50`,
-            [phrase],
-          );
-        }
-        if (my !== token) return;  // a newer query landed first
+        const rows = await search(q);
+        if (my !== token) return;
         renderRows(rows, performance.now() - t0);
       } catch (e) {
         if (my !== token) return;
@@ -128,6 +120,37 @@
       return String(s).replace(/[&<>"']/g, c => ({
         "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
       }[c]));
+    }
+
+    // URL-param entrypoints:
+    //   ?q=lake+mich              → populate input + render results in the table
+    //   ?q=lake+mich&format=json  → replace the page with JSON-only output
+    //   ?q=lake+mich&limit=200    → override the default 50-row cap (max 1000)
+    const params = new URLSearchParams(window.location.search);
+    const initialQuery = params.get("q")?.trim();
+    if (initialQuery) {
+      if (params.get("format") === "json") {
+        const limit = Math.min(parseInt(params.get("limit") ?? "50", 10) || 50, 1000);
+        try {
+          const rows = await search(initialQuery, limit);
+          renderJson({ query: initialQuery, count: rows.length, results: rows });
+        } catch (e) {
+          renderJson({ query: initialQuery, error: e.message }, true);
+        }
+      } else {
+        input.value = initialQuery;
+        runQuery();
+      }
+    }
+
+    function renderJson(payload, isError = false) {
+      document.body.innerHTML = "";
+      document.body.style.margin = "0";
+      document.body.style.maxWidth = "none";
+      const pre = document.createElement("pre");
+      pre.style.cssText = "margin:0;padding:1rem;font:13px/1.4 ui-monospace,SFMono-Regular,monospace;white-space:pre-wrap;word-break:break-word;" + (isError ? "color:#c00;" : "");
+      pre.textContent = JSON.stringify(payload, null, 2);
+      document.body.appendChild(pre);
     }
   </script>
 </body>
