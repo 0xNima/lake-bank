@@ -30,12 +30,16 @@
   </table>
 
   <script type="module">
-    import { createDbWorker } from "https://esm.sh/sql.js-httpvfs@0.8.12";
+    import * as sqljsHttpvfs from "https://esm.sh/sql.js-httpvfs@0.8.12";
+    const createDbWorker = sqljsHttpvfs.createDbWorker ?? sqljsHttpvfs.default?.createDbWorker;
+    if (!createDbWorker) {
+      throw new Error("createDbWorker missing — esm.sh export shape changed; inspect `sqljsHttpvfs`");
+    }
 
     // ─── EDIT THIS ─────────────────────────────────────────────────────────────
     // Either raw.githubusercontent.com (works, but no custom caching headers)
     // or a GitHub Pages URL if you publish storage/db/lakes.sqlite via Pages.
-    const DB_URL = "https://raw.githubusercontent.com/0xNima/lake-bank/main/storage/db/lakes.sqlite";
+    const DB_URL = "https://0xnima.github.io/lake-bank/web/storage/db/lakes.sqlite";
     // ──────────────────────────────────────────────────────────────────────────
 
     const statusEl = document.getElementById("status");
@@ -53,8 +57,8 @@
             requestChunkSize: 65536,  // matches PRAGMA page_size in collect.py
           },
         }],
-        "https://esm.sh/sql.js-httpvfs@0.8.12/dist/sqlite.worker.js",
-        "https://esm.sh/sql.js-httpvfs@0.8.12/dist/sql-wasm.wasm",
+        "./lib/sqlite.worker.js",
+        "./lib/sql-wasm.wasm",
       );
       statusEl.textContent = "Ready. Type to search.";
     } catch (e) {
