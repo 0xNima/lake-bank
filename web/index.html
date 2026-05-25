@@ -36,11 +36,10 @@
       throw new Error("createDbWorker missing — esm.sh export shape changed; inspect `sqljsHttpvfs`");
     }
 
-    // ─── EDIT THIS ─────────────────────────────────────────────────────────────
-    // Either raw.githubusercontent.com (works, but no custom caching headers)
-    // or a GitHub Pages URL if you publish storage/db/lakes.sqlite via Pages.
-    const DB_URL = "https://0xnima.github.io/lake-bank/web/storage/db/lakes.sqlite";
-    // ──────────────────────────────────────────────────────────────────────────
+    // lakes.sqlite lives at the repo root under storage/db/, while this page
+    // is served from web/. Resolve relative to the page so the URL is correct
+    // regardless of where Pages is mounted.
+    const DB_URL = new URL("../storage/db/lakes.sqlite", import.meta.url).href;
 
     const statusEl = document.getElementById("status");
     const resultsEl = document.getElementById("results");
