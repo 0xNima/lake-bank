@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Lake Bank</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    body { font: 14px system-ui, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; color: #222; }
+    h1 { margin: 0 0 .5rem; }
+    .sub { color: #666; margin: 0 0 1rem; font-size: 13px; }
+    input { width: 100%; padding: .7rem .8rem; font-size: 1rem; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+    .status { color: #888; font-size: 12px; margin: .6rem 0; min-height: 1em; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border-bottom: 1px solid #eee; padding: .45rem .6rem; text-align: left; vertical-align: top; }
+    th { background: #fafafa; font-weight: 600; }
+    td.id { font-family: ui-monospace, monospace; font-size: 12px; color: #555; white-space: nowrap; }
+    .empty { color: #888; padding: 1rem; text-align: center; }
+    .err { color: #c00; }
+  </style>
+</head>
+<body>
+  <h1>Lake Bank</h1>
+  <p class="sub">Search SWOT lakes by name (substring / fuzzy). Powered by SQLite served over HTTP Range requests — no server.</p>
+
+  <input id="q" type="search" placeholder="Type at least 3 characters…" autofocus autocomplete="off">
+  <div class="status" id="status">Loading database…</div>
+  <table>
+    <thead><tr><th>lake_id</th><th>lake_name</th></tr></thead>
+    <tbody id="results"></tbody>
+  </table>
+
+  <script type="module">
+    import { createDbWorker } from "https://esm.sh/sql.js-httpvfs@0.8.12";
+
+    // ─── EDIT THIS ─────────────────────────────────────────────────────────────
+    // Either raw.githubusercontent.com (works, but no custom caching headers)
+    // or a GitHub Pages URL if you publish storage/db/lakes.sqlite via Pages.
+    const DB_URL = "https://raw.githubusercontent.com/0xNima/lake-bank/main/storage/db/lakes.sqlite";
+    // ──────────────────────────────────────────────────────────────────────────
+
+    const statusEl = document.getElementById("status");
+    const resultsEl = document.getElementById("results");
+    const input = document.getElementById("q");
+
+    let worker;
+    try {
+      worker = await createDbWorker(
+        [{
+          from: "inline",
+          config: {
+            serverMode: "full",
+            url: DB_URL,
+            requestChunkSize: 65536,  // matches PRAGMA page_size in collect.py
+          },
+        }],
+        "https://esm.sh/sql.js-httpvfs@0.8.12/dist/sqlite.worker.js",
+        "https://esm.sh/sql.js-httpvfs@0.8.12/dist/sql-wasm.wasm",
+      );
+      statusEl.textContent = "Ready. Type to search.";
+    } catch (e) {
+      statusEl.innerHTML = `<span class="err">Failed to load database: ${escapeHtml(e.message)}</span>`;
+      throw e;
+    }
+
+    let token = 0;
+    let timer = 0;
+    input.addEventListener("input", () => {
+      clearTimeout(timer);
+      timer = setTimeout(runQuery, 120);  // debounce while typing
+    });
+
+    async function runQuery() {
+      const q = input.value.trim();
+      const my = ++token;
+      if (!q) { resultsEl.innerHTML = ""; statusEl.textContent = "Ready."; return; }
+
+      try {
+        const t0 = performance.now();
+        let rows;
+        if (q.length < 3) {
+          // FTS5 trigram needs 3+ chars — fall back to a fast prefix LIKE
+          rows = await worker.db.query(
+            `SELECT lake_id, lake_name FROM lakes
+             WHERE lake_name LIKE ? || '%' COLLATE NOCASE
+             LIMIT 50`,
+            [q],
+          );
+        } else {
+          // Trigram substring/fuzzy match across the whole name
+          const phrase = `"${q.replaceAll('"', '""')}"`;
+          rows = await worker.db.query(
+            `SELECT l.lake_id, l.lake_name
+             FROM lakes_fts f
+             JOIN lakes l ON l.rowid = f.rowid
+             WHERE lakes_fts MATCH ?
+             LIMIT 50`,
+            [phrase],
+          );
+        }
+        if (my !== token) return;  // a newer query landed first
+        renderRows(rows, performance.now() - t0);
+      } catch (e) {
+        if (my !== token) return;
+        resultsEl.innerHTML = `<tr><td colspan="2" class="err">${escapeHtml(e.message)}</td></tr>`;
+      }
+    }
+
+    function renderRows(rows, ms) {
+      if (!rows.length) {
+        resultsEl.innerHTML = `<tr><td colspan="2" class="empty">No matches</td></tr>`;
+      } else {
+        resultsEl.innerHTML = rows
+          .map(r => `<tr><td class="id">${escapeHtml(r.lake_id)}</td><td>${escapeHtml(r.lake_name)}</td></tr>`)
+          .join("");
+      }
+      statusEl.textContent = `${rows.length} result${rows.length === 1 ? "" : "s"} in ${ms.toFixed(0)} ms`;
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+      }[c]));
+    }
+  </script>
+</body>
+</html>

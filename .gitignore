@@ -1,6 +1,8 @@
 venv
 .idea
 .env
-storage
-!storage/db
+storage/*
+!storage/db/
+storage/db/*
+!storage/db/*.sqlite
 *.csv
