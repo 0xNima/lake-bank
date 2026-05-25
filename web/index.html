@@ -46,6 +46,11 @@
     const resultsEl = document.getElementById("results");
     const input = document.getElementById("q");
 
+    // Resolve to absolute URLs so the worker doesn't re-resolve them relative
+    // to its own location (which would give .../lib/lib/sql-wasm.wasm).
+    const workerUrl = new URL("./lib/sqlite.worker.js", import.meta.url).href;
+    const wasmUrl   = new URL("./lib/sql-wasm.wasm",    import.meta.url).href;
+
     let worker;
     try {
       worker = await createDbWorker(
@@ -57,8 +62,8 @@
             requestChunkSize: 65536,  // matches PRAGMA page_size in collect.py
           },
         }],
-        "./lib/sqlite.worker.js",
-        "./lib/sql-wasm.wasm",
+        workerUrl,
+        wasmUrl,
       );
       statusEl.textContent = "Ready. Type to search.";
     } catch (e) {
