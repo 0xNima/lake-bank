@@ -1,0 +1,11 @@
+<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- Circular Background / Q Shape -->
+  <path d="M80,50 A30,30 0 1,0 70,75 L85,90" fill="none" stroke="#559605" stroke-width="12" stroke-linecap="round"/>
+
+  <!-- River / Water Waves -->
+  <path d="M30,45 Q40,35 50,45 T70,45" fill="none" stroke="#00aaff" stroke-width="8" stroke-linecap="round"/>
+  <path d="M30,60 Q40,50 50,60 T70,60" fill="none" stroke="#0077be" stroke-width="8" stroke-linecap="round"/>
+
+  <!-- Small Satellite Point -->
+  <circle cx="80" cy="20" r="6" fill="#ffcc00" />
+</svg>
