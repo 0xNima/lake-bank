@@ -1,0 +1,26 @@
+name: import d1
+
+on:
+  push:
+    branches: [main]
+    paths: ['storage/db/lakes.sqlite']
+  workflow_dispatch:  # allow manual runs from the Actions tab
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Generate D1 SQL dump from lakes.sqlite
+        run: python -c "from collect import export_d1_sql; export_d1_sql()"
+
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          workingDirectory: api
+          command: d1 execute lake-bank --remote --file=../storage/db/lakes_d1.sql
