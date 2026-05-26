@@ -1,0 +1,8 @@
+name = "lakes"
+main = "src/index.js"
+compatibility_date = "2026-05-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "lake-bank"
+database_id = "83ce9368-254a-49a5-bbce-883318d08be4"

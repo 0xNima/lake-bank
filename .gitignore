@@ -6,3 +6,6 @@ storage/*
 storage/db/*
 !storage/db/*.sqlite
 *.csv
+
+node_modules
+.wrangler

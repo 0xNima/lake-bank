@@ -9,6 +9,7 @@ STORAGE_DIR = Path("./storage")
 INPUT_CSV = Path("./storage/db/lakes.csv")
 OUTPUT_CSV = Path("./storage/db/lakes_clean.csv")
 SQLITE_DB = Path("./storage/db/lakes.sqlite")
+D1_SQL = Path("./storage/db/lakes_d1.sql")
 
 
 def build_lakes_csv():
@@ -92,7 +93,30 @@ def build_sqlite():
     print(f"Built {SQLITE_DB} with {len(rows)} rows ({size_mb:.1f} MB)")
 
 
+def export_d1_sql():
+    conn = sqlite3.connect(SQLITE_DB)
+    try:
+        rows = conn.execute("SELECT lake_id, lake_name FROM lakes").fetchall()
+    finally:
+        conn.close()
+
+    # No BEGIN/COMMIT — D1 manages transactions itself and rejects explicit
+    # transaction control. `wrangler d1 import` batches the inserts efficiently.
+    with open(D1_SQL, 'w') as f:
+        f.write("DROP TABLE IF EXISTS lakes;\n")
+        f.write("CREATE TABLE lakes (lake_id TEXT NOT NULL, lake_name TEXT NOT NULL);\n")
+        f.write("CREATE INDEX idx_lakes_name ON lakes(lake_name COLLATE NOCASE);\n")
+        for lake_id, lake_name in rows:
+            lid = lake_id.replace("'", "''")
+            nm = lake_name.replace("'", "''")
+            f.write(f"INSERT INTO lakes VALUES ('{lid}', '{nm}');\n")
+
+    size_mb = D1_SQL.stat().st_size / 1024 / 1024
+    print(f"Wrote {D1_SQL} ({len(rows)} rows, {size_mb:.1f} MB)")
+
+
 if __name__ == '__main__':
     build_lakes_csv()
     write_clean_csv()
     build_sqlite()
+    export_d1_sql()

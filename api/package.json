@@ -1,0 +1,15 @@
+{
+  "name": "lake-bank-api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:create": "wrangler d1 create lake-bank",
+    "db:import": "wrangler d1 execute lake-bank --remote --file=../storage/db/lakes_d1.sql",
+    "db:import-local": "wrangler d1 execute lake-bank --local --file=../storage/db/lakes_d1.sql"
+  },
+  "devDependencies": {
+    "wrangler": "^3.90.0"
+  }
+}
