@@ -1,0 +1,39 @@
+name: deploy pages
+
+on:
+  push:
+    branches: [main]
+    paths: ['web/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one Pages deploy running at a time; new pushes queue rather than fight.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: ${{ !startsWith(github.event.head_commit.message, '[ci-skip]') }}
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/configure-pages@v5
+
+      # Publish the entire repo as-is (no Jekyll). path:'.' keeps current URLs
+      # working (e.g. https://0xnima.github.io/lake-bank/web/), so the og:url
+      # and canonical meta tags don't need to change.
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
