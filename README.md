@@ -69,8 +69,7 @@ There's no need to pick larger windows than that for index-building purposes; yo
 Three ways to look up a lake by name without setting anything up locally:
 
 1. **CSV files** — `storage/db/lakes.csv` and `storage/db/lakes_clean.csv` are tracked in the repo and usable directly from pandas, Excel, or any CSV tool.
-2. **Browser UI** — https://0xnima.github.io/lake-bank/web/. Case-insensitive prefix search against the SQLite database, fetched over HTTP Range requests so the client only downloads the few KB of pages each query actually touches. No server, no install.
-3. **JSON API** — https://lakes.swot-lake.workers.dev/?q=lake+michigan. Returns `{ query, count, results: [{ lake_id, lake_name }, ...] }`. Supports `?q=…` (required) and `?limit=…` (default 50, max 1000). CORS open, safe to call from a browser.
+2. **JSON API** — https://lakes.swot-lake.workers.dev/?q=lake+michigan. Returns `{ query, count, results: [{ lake_id, lake_name }, ...] }`. Supports `?q=…` (required) and `?limit=…` (default 50, max 1000). CORS open, safe to call from a browser.
 
 ## Project layout
 
